@@ -11,24 +11,34 @@ export default class Index extends React.Component {
 
   async userRegister(event) {
     event.preventDefault();
-    const url = "/api/register";
-    const response = await fetch(url, {
-      body: JSON.stringify({
-        username: event.target.username.value,
-        email: event.target.email.value,
-        password: event.target.password.value,
-      }),
-      headers: {
-        "Content-Type": "application/json",
-      },
-      method: "POST",
-    });
-    const data = await response.json();
-    console.log(data);
 
-    if (data.status === "success") {
-      console.log(data.secret);
-      this.setState({ secret: String(data.secret) });
+    try {
+      const url = "/api/register";
+      const response = await fetch(url, {
+        body: JSON.stringify({
+          username: event.target.username.value,
+          email: event.target.email.value,
+          password: event.target.password.value,
+        }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        method: "POST",
+      });
+
+      if (!response.ok) {
+        throw Error(response.statusText);
+      }
+
+      const data = await response.json();
+      console.log(data);
+
+      if (data.status === "success") {
+        console.log(data.secret);
+        this.setState({ secret: String(data.secret) });
+      }
+    } catch (error) {
+      console.log(error);
     }
   }
 

@@ -5,21 +5,30 @@ import Router from "next/router";
 export default class Index extends React.Component {
   async userLogin(event) {
     event.preventDefault();
-    const url = "/api/login";
-    const response = await fetch(url, {
-      body: JSON.stringify({
-        username: event.target.username.value,
-        password: event.target.password.value,
-      }),
-      headers: {
-        "Content-Type": "application/json",
-      },
-      method: "POST",
-    });
-    const data = await response.json();
-    console.log(data);
+    try {
+      const url = "/api/login";
+      const response = await fetch(url, {
+        body: JSON.stringify({
+          username: event.target.username.value,
+          password: event.target.password.value,
+        }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        method: "POST",
+      });
 
-    if (data.status === "success") Router.push(data.redirect);
+      if (!response.ok) {
+        throw Error(response.statusText);
+      }
+
+      const data = await response.json();
+      console.log(data);
+
+      if (data.status === "success") Router.push(data.redirect);
+    } catch (error) {
+      console.log(error);
+    }
   }
 
   render() {
