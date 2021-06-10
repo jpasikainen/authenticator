@@ -3,6 +3,8 @@ from flask import request, session
 from app import app
 from models import User
 from db import db_session
+from werkzeug.security import generate_password_hash, check_password_hash
+from cryptography.fernet import Fernet
 
 @app.route("/login", methods=["POST"])
 def login():
@@ -10,7 +12,8 @@ def login():
     password = request.get_json()["password"]
 
     if username and password:
-        if User.query.filter(User.username == username).filter(User.password == password).first():
+        user = User.query.filter(User.username == username).first()
+        if user and check_password_hash(user.password, password):
             session["username"] = username
             return {"status": "success", "redirect": "/authenticate"}
     return {"status": "failure"}
@@ -19,7 +22,7 @@ def login():
 def authenticate():
     username = session.get("username")
     if username:
-        auth = User.query.filter(User.username == username).first().auth
+        auth = Fernet(app.secret_key).decrypt(User.query.filter(User.username == username).first().auth)
         otp = request.get_json()["otp"]
         if pyotp.TOTP(auth).verify(otp):
             return {"status": "success"}
@@ -35,10 +38,13 @@ def register():
     if username and password and email:
         if not User.query.filter(User.username == username).first() and not User.query.filter(User.email == email).first():
             auth = pyotp.random_base32()
-            secret = pyotp.totp.TOTP(auth).provisioning_uri(name=email, issuer_name='Test App')
-            user = User(username, email, password, auth)
+            uri = pyotp.totp.TOTP(auth).provisioning_uri(name=email, issuer_name='Test App')
+            f_auth = Fernet(app.secret_key).encrypt(bytes(auth, "utf-8"))
+            h_password = generate_password_hash(password)
+            user = User(username, email, h_password, f_auth)
             db_session.add(user)
             db_session.commit()
-            return {"status": "success", "secret": secret}
+
+            return {"status": "success", "secret": uri}
 
     return {"status": "failure"}
