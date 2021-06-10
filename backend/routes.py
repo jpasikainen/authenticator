@@ -48,3 +48,7 @@ def register():
             return {"status": "success", "secret": uri}
 
     return {"status": "failure"}
+
+@app.route("/user", methods=["GET"])
+def user():
+    return {"username": session.get("username", "")}
